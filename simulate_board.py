@@ -25,7 +25,7 @@ blue_words = board_words[9:17] # 8 red words
 assassin_word = board_words[17] # 1 assassin word
 bystander_words = board_words[18:25] # 7 bystander words
 
-# Iterate through all pairs of red words. Find word that leads to best score for 2 words
+# Iterate through all pairs of red words. Find word that leads to good score for 2 words
 best_score = 0
 for i in data:
     for j in range(len(red_words)):
@@ -33,9 +33,7 @@ for i in data:
             if not(red_words[j] in i or red_words[k] in i): # make sure word does not contain either of the 2 red words
                 sim1 = cosine_similarity(data[red_words[j]],data[i])
                 sim2 = cosine_similarity(data[red_words[k]],data[i])
-                score = sim1 + sim2
-                if score>best_score:
-                    print(i,red_words[j],red_words[k],sim1,sim2,score)
-                    best_score = score
+                if sim1 > 0.45 and sim2 > 0.45:
+                    print(i,red_words[j],red_words[k],sim1,sim2)
 
 print("done")
