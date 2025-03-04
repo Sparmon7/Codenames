@@ -22,7 +22,7 @@ embeddings = {}
 with open("glove.6B.200d.txt", "r", encoding="utf-8") as f:
     for line in f:
         vec = line.rstrip("\n").split(" ")
-        if vec[0].isalpha():
+        if vec[0].isalpha() and not vec[0] is 'bulletinyyy':
             embeddings[vec[0]] = np.round(np.array(vec)[1:].astype(float),2)
         
 print('saving')
