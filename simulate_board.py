@@ -6,8 +6,8 @@ import random
 import math
 
 #adjustable parameters
-skill_level=10
-assassin_penalty=-5
+skill_level=25
+assassin_penalty=-9
 
 
 def decode_numpy(obj):
@@ -60,7 +60,11 @@ def calculate_expected(word, softmaxes, guesses):
         return assassin_penalty*temp[word]
     else:
         return 0
-    
+
+
+max = -1
+best_clue = None
+best_guesses = -1   
 for i in data:
     if check_validity(i, board_words):
         softmaxes = [math.exp(skill_level*cosine_similarity(data[word], data[i])) for word in board_words]
