@@ -3,9 +3,7 @@ import lzma
 import numpy as np
 import pandas as pd
 import random
-
 import time
-
 
 # adjustable parameters
 skill_level=30
@@ -37,9 +35,7 @@ board_words = random.sample(words, 25)  # pick 25 words for the board, randomly
 # bystander_words = board_words[18:25] # 7 bystander words
 
 
-def cosine_similarity(a, b): return np.dot(
-    a, b)/(np.linalg.norm(a)*np.linalg.norm(b))
-
+def cosine_similarity(a, b): return np.dot(a, b)/(np.linalg.norm(a)*np.linalg.norm(b))
 
 def check_validity(word, board_words):
     for i in board_words:
