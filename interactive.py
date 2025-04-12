@@ -7,17 +7,15 @@ import time
 import math
 import sys
 
-#load words
-def decode_numpy(obj):
-    if "__ndarray__" in obj:
-        return np.frombuffer(obj["__ndarray__"], dtype=obj["dtype"]).reshape(obj["shape"])
-    return obj
-
-print('Welcome to the CodeNames Assistant, the bot that helps you give clues to win the game CodeNames')
-print('Loading dictionary of words...\n')
-
-with lzma.open("embeddings.msgpack.xz", "rb") as f:
-    data = msgpack.load(f, object_hook=decode_numpy)
+def load_embeddings():
+    def decode_numpy(obj):
+        if "__ndarray__" in obj:
+            return np.frombuffer(obj["__ndarray__"], dtype=obj["dtype"]).reshape(obj["shape"])
+        return obj
+    
+    with lzma.open("embeddings.msgpack.xz", "rb") as f:
+        data = msgpack.load(f, object_hook=decode_numpy)
+    return data
 
 #get board layout
 def check_real_word(word):
@@ -282,26 +280,32 @@ def begin_automate():
 # assassin = ["time"]
 # bystander = ["america", "buffalo", "field", "tube", "ghost", "grass", "dwarf"]
 
-good, bad, assassin, bystander= begin_automate()
-clues = generate_inital_clues(good,bad,assassin,bystander)
-team_turn = len(good)==9
-done = False
+def main(): 
+    good, bad, assassin, bystander= begin_automate()
+    clues = generate_inital_clues(good,bad,assassin,bystander)
+    team_turn = len(good)==9
+    done = False
 
-turn_count = 0
-while not done:
-    if team_turn:
-        best_clue, best_guesses, clues = generate_guess(clues, good, bad, assassin, bystander)
-        print(f"Suggested guess: {best_clue} for {best_guesses}")
-        clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, True)
-    else:
-        clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, False)
+    turn_count = 0
+    while not done:
+        if team_turn:
+            best_clue, best_guesses, clues = generate_guess(clues, good, bad, assassin, bystander)
+            print(f"Suggested guess: {best_clue} for {best_guesses}")
+            clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, True)
+        else:
+            clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, False)
 
-    team_turn = not team_turn
-    turn_count += 1
+        team_turn = not team_turn
+        turn_count += 1
 
-    if turn_count % 2 == 0:
-        print("Remaining team words:", good)
-        print("Remaining other team words:", bad)
-        print("Remaining assassin word:", assassin)
-        print("Remaining bystander words:", bystander)
-        print('\n')
+        if turn_count % 2 == 0:
+            print("Remaining team words:", good)
+            print("Remaining other team words:", bad)
+            print("Remaining assassin word:", assassin)
+            print("Remaining bystander words:", bystander)
+            print('\n')
+
+if __name__ == "__main__": 
+
+    data = load_embeddings()
+    main()
