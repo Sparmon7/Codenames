@@ -7,6 +7,8 @@ import time
 import math
 import sys
 
+similarity_cache = {}
+
 def load_embeddings():
     def decode_numpy(obj):
         if "__ndarray__" in obj:
@@ -17,11 +19,11 @@ def load_embeddings():
         data = msgpack.load(f, object_hook=decode_numpy)
     return data
 
-#get board layout
+#  get board layout
 def check_real_word(word):
     return word in data
 
-#take in words from user
+# take in words from user
 def begin():    
     num_input = -1
     while num_input != 8 and num_input !=9:
@@ -73,14 +75,20 @@ def begin():
 
     return good_words, bad_words, assassin_words, bystander_words
 
-def cosine_similarity(a, b): return np.dot(a, b)/(np.linalg.norm(a)*np.linalg.norm(b))
+# def cosine_similarity(a, b):
+#     return np.dot(a, b)/(np.linalg.norm(a)*np.linalg.norm(b))
+
+def cosine_similarity(a, b):
+    key = (a, b) if a < b else (b, a)  # order doesn't matter for cosine similarity
+
+    if key not in similarity_cache:
+        similarity_cache[key] = np.dot(a, b)/(np.linalg.norm(a)*np.linalg.norm(b))
+
+    return similarity_cache[key]
 
 #make sure clue isn't in one of the words
 def check_validity(word, board_words):
-    for i in board_words:
-        if word in i or i in word:
-            return False
-    return True
+    return not any((word in bw) or (bw in word) for bw in board_words)
 
 #make sure possible clues are associated with a word
 def check_minimum_threshold(word, good_words, threshold = 0.45):
@@ -89,7 +97,7 @@ def check_minimum_threshold(word, good_words, threshold = 0.45):
             return True        
     return False
 
-#create preliminary list of potential clues for use through the rest of the game
+# create preliminary list of potential clues for use through the rest of the game
 def generate_inital_clues(good_words, bad_words, assassin_words, bystander_words, skill_level=15):
     start = time.time()
     
@@ -103,12 +111,14 @@ def generate_inital_clues(good_words, bad_words, assassin_words, bystander_words
     
     good_embeddings = np.stack([data[word] for word in good_words])
     good_norms = np.linalg.norm(good_embeddings, axis=1)
-    
-    for candidate in data:
+
+    valid_candidates = [c for c in data if check_validity(c, board_words)]
+
+    for candidate in valid_candidates:
         # candidates that contain any board word (or vice versa)
         if not all(candidate not in bw and bw not in candidate for bw in board_words):
-            continue
 
+            continue
         candidate_embedding = data[candidate]
         candidate_norm = np.linalg.norm(candidate_embedding)
         
@@ -289,7 +299,10 @@ def main():
     turn_count = 0
     while not done:
         if team_turn:
+            # start_time = time.time()
             best_clue, best_guesses, clues = generate_guess(clues, good, bad, assassin, bystander)
+            # elapsed_time = time.time() - start_time
+            # print("Time for generate_guess: {:.4f} seconds".format(elapsed_time))
             print(f"Suggested guess: {best_clue} for {best_guesses}")
             clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, True)
         else:
