@@ -6,6 +6,15 @@ import random
 import time
 import math
 import sys
+from monte_carlo_generator import MonteCarloClueGenerator
+from utils import (
+    load_embeddings,
+    cosine_similarity,
+    check_real_word,
+    check_minimum_threshold,
+    check_validity,
+    remove_words_monte_carlo
+)
 
 similarity_cache = {}
 
@@ -19,9 +28,6 @@ def load_embeddings():
         data = msgpack.load(f, object_hook=decode_numpy)
     return data
 
-#  get board layout
-def check_real_word(word):
-    return word in data
 
 # take in words from user
 def begin():    
@@ -291,34 +297,57 @@ def begin_automate():
 # bystander = ["america", "buffalo", "field", "tube", "ghost", "grass", "dwarf"]
 
 def main(): 
-    good, bad, assassin, bystander= begin_automate()
-    clues = generate_inital_clues(good,bad,assassin,bystander)
+    # good, bad, assassin, bystander= begin_automate()
+    # clues = generate_inital_clues(good,bad,assassin,bystander)
+    print("\nStarting new Codenames game...")
+    good, bad, assassin, bystander = begin_automate()
+    mc_generator = MonteCarloClueGenerator(n_simulations=1000)
+
     team_turn = len(good)==9
     done = False
 
     turn_count = 0
     while not done:
         if team_turn:
-            # start_time = time.time()
-            best_clue, best_guesses, clues = generate_guess(clues, good, bad, assassin, bystander)
-            # elapsed_time = time.time() - start_time
-            # print("Time for generate_guess: {:.4f} seconds".format(elapsed_time))
-            print(f"Suggested guess: {best_clue} for {best_guesses}")
-            clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, True)
+            
+            print("\nGenerating best clue...")
+            print("\nYour turn!")
+            start_time = time.time()
+            best_clue, best_guesses = mc_generator.generate_best_clue(good, bad, assassin, bystander)
+            #  best_clue, best_guesses, clues = generate_guess(clues, good, bad, assassin, bystander)
+            elapsed_time = time.time() - start_time
+            print(f"\nTime to generate clue: {elapsed_time:.2f} seconds")
+            print(f"Suggested guess: {best_clue} for {best_guesses} guesses")
+            #   clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, True)
+
+            good, bad, assassin, bystander = remove_words_monte_carlo(good, bad, assassin, bystander, True)
         else:
-            clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, False)
+            print("\nOpponent's turn!")
+            good, bad, assassin, bystander = remove_words_monte_carlo(good, bad, assassin, bystander, False)
 
         team_turn = not team_turn
         turn_count += 1
 
         if turn_count % 2 == 0:
+            print("\nCurrent Board State:")
             print("Remaining team words:", good)
             print("Remaining other team words:", bad)
             print("Remaining assassin word:", assassin)
             print("Remaining bystander words:", bystander)
             print('\n')
+            
+            # Check for game end conditions
+            if not good:
+                print("Game Over! Your team has won!")
+                done = True
+            elif not bad:
+                print("Game Over! The other team has won!")
+                done = True
+            elif not assassin:
+                print("Game Over! The assassin was found!")
+                done = True
 
 if __name__ == "__main__": 
 
-    data = load_embeddings()
+    # data = load_embeddings()
     main()
