@@ -5,7 +5,7 @@ import random
 import time
 import math
 import sys
-from monte_carlo_generator import MonteCarloClueGenerator
+from simple_monte_carlo import SimpleMonteCarlo
 from utils import (
     load_embeddings,
     cosine_similarity,
@@ -270,11 +270,10 @@ def main():
 
     good, bad, assassin, bystander = begin_automate()
     if monte_carlo:
-        mc_generator = MonteCarloClueGenerator(n_simulations=100)    
+        mc_generator = SimpleMonteCarlo(n_simulations=100)
     else: 
         global data
         data = load_embeddings()
-
         clues = generate_inital_clues(good,bad,assassin,bystander)
 
     team_turn = len(good)==9

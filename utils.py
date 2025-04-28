@@ -21,6 +21,14 @@ def load_embeddings():
     """Return the pre-loaded embeddings."""
     return data
 
+
+def load_single_embedding(word): # pro
+    all_embeddings = load_embeddings()
+    return all_embeddings.get(word, None)
+    
+def get_vocabulary():    
+    return list(load_embeddings().keys())
+
 def cosine_similarity(a, b):
 
     a_tuple = tuple(a.tolist())
