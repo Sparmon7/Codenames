@@ -1,7 +1,6 @@
 import msgpack
 import lzma
 import numpy as np
-import pandas as pd
 import random
 import time
 import math
@@ -17,17 +16,6 @@ from utils import (
 )
 
 similarity_cache = {}
-
-def load_embeddings():
-    def decode_numpy(obj):
-        if "__ndarray__" in obj:
-            return np.frombuffer(obj["__ndarray__"], dtype=obj["dtype"]).reshape(obj["shape"])
-        return obj
-    
-    with lzma.open("embeddings.msgpack.xz", "rb") as f:
-        data = msgpack.load(f, object_hook=decode_numpy)
-    return data
-
 
 # take in words from user
 def begin():    
@@ -81,28 +69,6 @@ def begin():
 
     return good_words, bad_words, assassin_words, bystander_words
 
-# def cosine_similarity(a, b):
-#     return np.dot(a, b)/(np.linalg.norm(a)*np.linalg.norm(b))
-
-def cosine_similarity(a, b):
-    key = (a, b) if a < b else (b, a)  # order doesn't matter for cosine similarity
-
-    if key not in similarity_cache:
-        similarity_cache[key] = np.dot(a, b)/(np.linalg.norm(a)*np.linalg.norm(b))
-
-    return similarity_cache[key]
-
-#make sure clue isn't in one of the words
-def check_validity(word, board_words):
-    return not any((word in bw) or (bw in word) for bw in board_words)
-
-#make sure possible clues are associated with a word
-def check_minimum_threshold(word, good_words, threshold = 0.45):
-    for i in good_words:
-        if cosine_similarity(word,data[i])>threshold:
-            return True        
-    return False
-
 # create preliminary list of potential clues for use through the rest of the game
 def generate_inital_clues(good_words, bad_words, assassin_words, bystander_words, skill_level=15):
     start = time.time()
@@ -130,7 +96,7 @@ def generate_inital_clues(good_words, bad_words, assassin_words, bystander_words
         
         # cosine similarities to good words and then bad wrods
         cosines = (good_embeddings @ candidate_embedding) / (good_norms * candidate_norm)
-        if not np.any(cosines > 0.45):
+        if not check_minimum_threshold(candidate, good_words):
             continue
 
         sims = (board_embeddings @ candidate_embedding) / (board_norms * candidate_norm)
@@ -297,11 +263,19 @@ def begin_automate():
 # bystander = ["america", "buffalo", "field", "tube", "ghost", "grass", "dwarf"]
 
 def main(): 
-    # good, bad, assassin, bystander= begin_automate()
-    # clues = generate_inital_clues(good,bad,assassin,bystander)
     print("\nStarting new Codenames game...")
+
+    print("Run with monte carlo? (type y or n)")
+    monte_carlo = input().strip().lower() == 'y'
+
     good, bad, assassin, bystander = begin_automate()
-    mc_generator = MonteCarloClueGenerator(n_simulations=1000)
+    if monte_carlo:
+        mc_generator = MonteCarloClueGenerator(n_simulations=100)    
+    else: 
+        global data
+        data = load_embeddings()
+
+        clues = generate_inital_clues(good,bad,assassin,bystander)
 
     team_turn = len(good)==9
     done = False
@@ -309,21 +283,31 @@ def main():
     turn_count = 0
     while not done:
         if team_turn:
-            
             print("\nGenerating best clue...")
             print("\nYour turn!")
+           
             start_time = time.time()
-            best_clue, best_guesses = mc_generator.generate_best_clue(good, bad, assassin, bystander)
-            #  best_clue, best_guesses, clues = generate_guess(clues, good, bad, assassin, bystander)
+           
+            if monte_carlo:
+                best_clue, best_guesses = mc_generator.generate_best_clue(good, bad, assassin, bystander)
+            else: 
+                best_clue, best_guesses, clues = generate_guess(clues, good, bad, assassin, bystander)
+
             elapsed_time = time.time() - start_time
+
             print(f"\nTime to generate clue: {elapsed_time:.2f} seconds")
             print(f"Suggested guess: {best_clue} for {best_guesses} guesses")
-            #   clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, True)
 
-            good, bad, assassin, bystander = remove_words_monte_carlo(good, bad, assassin, bystander, True)
+            if monte_carlo: 
+                good, bad, assassin, bystander = remove_words_monte_carlo(good, bad, assassin, bystander, True)
+            else: 
+                clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, True)
         else:
             print("\nOpponent's turn!")
-            good, bad, assassin, bystander = remove_words_monte_carlo(good, bad, assassin, bystander, False)
+            if monte_carlo:
+                good, bad, assassin, bystander = remove_words_monte_carlo(good, bad, assassin, bystander, False)
+            else: 
+                clues, good, bad, assassin, bystander = remove_words(clues, good, bad, assassin, bystander, True)
 
         team_turn = not team_turn
         turn_count += 1
@@ -348,6 +332,4 @@ def main():
                 done = True
 
 if __name__ == "__main__": 
-
-    # data = load_embeddings()
     main()

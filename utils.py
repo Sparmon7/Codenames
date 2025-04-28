@@ -4,6 +4,7 @@ import numpy as np
 import time
 
 similarity_cache = {}
+MINIMUM_THRESHOLD = .45
 
 # to load the data when utils is imported
 print("Loading word embeddings...")
@@ -37,7 +38,7 @@ def check_real_word(word):
 def check_validity(word, board_words):
     return not any((word in bw) or (bw in word) for bw in board_words)
 
-def check_minimum_threshold(word, good_words, threshold=0.45):
+def check_minimum_threshold(word, good_words, threshold=MINIMUM_THRESHOLD):
     for i in good_words:
         if cosine_similarity(data[word], data[i]) > threshold:
             return True        
