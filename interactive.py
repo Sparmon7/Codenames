@@ -131,9 +131,10 @@ def generate_guess(clues, good_words, bad_words, assassin_words, bystander_words
     # print([np.array(clues[best_clue]).argsort()[-1 * best_guesses:][::-1]])
     # print(clues[best_clue][[np.array(clues[best_clue]).argsort()[-1 * best_guesses:][::-1]]])
     # print([words[i] for i in np.array(clues[best_clue]).argsort()[-1 * best_guesses:][::-1]])
-
+    indices=sorted(range(len(good_words)), key=lambda i: clues[best_clue][i], reverse=True)[:best_guesses]
     del clues[best_clue]
-    return best_clue, best_guesses, clues
+   
+    return best_clue, best_guesses, clues, [good_words[i] for i in indices] 
 
 #expected number of words for a guess
 def calculate_expected(word, softmaxes, guesses, good_length, assassin_penalty=-9):
@@ -255,6 +256,7 @@ def begin_automate():
         return good_words, bad_words, assassin_words, bystander_words
     
     return begin()
+    
                 
 # #for preloading random words to save time for testing
 # good = ["mammoth", "racket", "school", "worm", "nut", "microscope", "fork", "chest", "mole"]
@@ -286,16 +288,19 @@ def main():
             print("\nYour turn!")
            
             start_time = time.time()
+            words=[]
            
             if monte_carlo:
-                best_clue, best_guesses = mc_generator.generate_best_clue(good, bad, assassin, bystander)
+                best_clue, best_guesses, words = mc_generator.generate_best_clue(good, bad, assassin, bystander)
             else: 
-                best_clue, best_guesses, clues = generate_guess(clues, good, bad, assassin, bystander)
+                best_clue, best_guesses, clues, words = generate_guess(clues, good, bad, assassin, bystander)
+                
 
             elapsed_time = time.time() - start_time
 
             print(f"\nTime to generate clue: {elapsed_time:.2f} seconds")
             print(f"Suggested guess: {best_clue} for {best_guesses} guesses")
+            print(f"Predicted words: {", ".join(words)}")
 
             if monte_carlo: 
                 good, bad, assassin, bystander = remove_words_monte_carlo(good, bad, assassin, bystander, True)

@@ -207,7 +207,12 @@ class SimpleMonteCarlo:
         print(
             f"\nBest clue found: {best_clue} with {best_guesses} guesses (score: {best_score:.2f})"
         )
-        return best_clue, best_guesses
+        indices=sorted(range(len(good_words)), key=lambda i: self.get_word_similarities(best_clue,good_words)[i], reverse=True)[:best_guesses]
+        
+        temp = self.get_word_similarities(best_clue,good_words)
+        for i in range(len(good_words)):
+            print(temp[i], good_words[i])
+        return best_clue, best_guesses, [good_words[i] for i in indices] 
 
     def cleanup(self):
         """Free memory explicitly"""
